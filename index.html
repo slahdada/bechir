@@ -71,6 +71,7 @@ textarea{height:40px;text-align:right;font-size:0.75rem}
   <button class="btn btn-danger" onclick="deleteLocalData()">🗑️ مسح</button>
   <button class="btn btn-export" onclick="exportImage()">📸 صورة</button>
   <button class="btn btn-export" onclick="exportCSV()">📊 CSV</button>
+  <button class="btn btn-primary" style="background:linear-gradient(135deg,#6366f1,#4f46e5)" onclick="shareHTML()">🔗 مشاركة</button>
 </div>
 <div class="table-wrapper" id="captureArea">
   <table id="mainTable">
@@ -302,6 +303,45 @@ function exportCSV(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
   a.download='data.csv';
+  a.click();
+}
+
+async function shareHTML(){
+  const data = localStorage.getItem('myAppData') || '[]';
+  let html = document.documentElement.outerHTML;
+  
+  // Clean up existing scripts that might interfere or were already injected
+  html = html.replace(/<script id="data-injection">.*?<\/script>/s, '');
+  
+  const injection = `
+  <script id="data-injection">
+    localStorage.setItem('myAppData', \`${data.replace(/`/g, '\\`')}\`);
+    console.log('Data injected successfully');
+  <\/script>`;
+  
+  const finalHtml = html.replace('</body>', injection + '</body>');
+  const blob = new Blob([finalHtml], {type: 'text/html'});
+  const file = new File([blob], 'Sales_Report.html', {type: 'text/html'});
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'تقرير المبيعات',
+        text: 'تقرير المبيعات الشامل'
+      });
+    } catch (e) {
+      downloadFile(blob);
+    }
+  } else {
+    downloadFile(blob);
+  }
+}
+
+function downloadFile(blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Sales_Report.html';
   a.click();
 }
 
