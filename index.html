@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إدارة المنتجات والمصاريف</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--card:#1a1d27;--card2:#1e2130;--border:#2a2d3e;--accent:#6c63ff;--accent2:#ff6584;--green:#00d4aa;--orange:#ffb347;--red:#ff6b6b;--blue:#4fc3f7;--text:#e0e0e0;--text2:#a0a4b8}
+body{background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif;min-height:100vh;direction:rtl}
+header{background:linear-gradient(135deg,#1a1d27,#2a2d3e);padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--accent);box-shadow:0 4px 20px rgba(108,99,255,0.3)}
+header h1{font-size:1.8rem;font-weight:900;background:linear-gradient(90deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header p{color:var(--text2);font-size:0.9rem;margin-top:4px}
+.toolbar{background:var(--card);padding:15px 30px;display:flex;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+.btn{padding:10px 20px;border:none;border-radius:10px;font-family:'Cairo',sans-serif;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#8b80ff);color:#fff}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(108,99,255,0.4)}
+.btn-danger{background:linear-gradient(135deg,var(--red),#ff4757);color:#fff}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,107,107,0.4)}
+.btn-export{background:linear-gradient(135deg,var(--green),#00b894);color:#fff}
+.btn-export:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,212,170,0.4)}
+.table-wrapper{overflow-x:auto;padding:20px 30px}
+table{width:100%;border-collapse:collapse;min-width:1000px}
+thead tr{background:linear-gradient(135deg,#2a2d3e,#1e2130)}
+th{padding:14px 10px;text-align:center;font-size:0.85rem;font-weight:700;color:var(--accent);border:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:10;background:#2a2d3e}
+tbody tr{background:var(--card2);transition:background 0.2s}
+tbody tr:nth-child(even){background:var(--card)}
+tbody tr:hover{background:#252838}
+td{padding:8px;border:1px solid var(--border);text-align:center;vertical-align:middle}
+.photo-cell{width:90px}
+.photo-wrapper{position:relative;width:70px;height:70px;margin:auto;border-radius:10px;overflow:hidden;background:#2a2d3e;border:2px dashed var(--border);cursor:pointer;transition:border-color 0.3s}
+.photo-wrapper:hover{border-color:var(--accent)}
+.photo-wrapper img{width:100%;height:100%;object-fit:cover;display:none}
+.photo-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text2);font-size:0.65rem}
+.photo-placeholder span{font-size:1.5rem;line-height:1}
+.photo-wrapper input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+.cam-btn{position:absolute;bottom:2px;left:2px;background:var(--accent);color:#fff;border:none;border-radius:5px;width:20px;height:20px;font-size:0.7rem;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center}
+input[type=number],input[type=text],select,textarea{background:#2a2d3e;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Cairo',sans-serif;font-size:0.85rem;padding:6px 10px;width:100%;text-align:center;transition:border-color 0.3s}
+input[type=number]:focus,input[type=text]:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(108,99,255,0.2)}
+textarea{resize:none;height:60px;text-align:right}
+.total-cell{font-weight:700;font-size:1rem;padding:8px}
+.total-positive{color:var(--green)}
+.total-negative{color:var(--red)}
+select.status-select{padding:6px 8px;border-radius:8px;font-weight:600}
+.status-livré{background:#00d4aa22;color:var(--green);border-color:var(--green)}
+.status-attente{background:#ffb34722;color:var(--orange);border-color:var(--orange)}
+.status-annulé{background:#ff6b6b22;color:var(--red);border-color:var(--red)}
+.row-num{color:var(--text2);font-size:0.8rem;font-weight:600;width:40px}
+.del-btn{background:transparent;border:none;color:var(--red);font-size:1.1rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:background 0.2s}
+.del-btn:hover{background:rgba(255,107,107,0.15)}
+.summary{padding:20px 30px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;background:var(--card);border-top:2px solid var(--border)}
+.summary-card{border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.summary-card::after{content:'';position:absolute;inset:0;background:currentColor;opacity:0.06;pointer-events:none}
+.summary-card.blue{color:var(--blue);border:1px solid rgba(79,195,247,0.3)}
+.summary-card.orange{color:var(--orange);border:1px solid rgba(255,179,71,0.3)}
+.summary-card.green{color:var(--green);border:1px solid rgba(0,212,170,0.3)}
+.summary-card.red{color:var(--red);border:1px solid rgba(255,107,107,0.3)}
+.summary-label{font-size:0.85rem;font-weight:600;opacity:0.8}
+.summary-value{font-size:1.8rem;font-weight:900}
+.summary-unit{font-size:0.8rem;opacity:0.7}
+footer{text-align:center;padding:20px;color:var(--text2);font-size:0.8rem;border-top:1px solid var(--border)}
+.drag-over{border-color:var(--accent)!important;background:rgba(108,99,255,0.1)!important}
+.paste-hint{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:12px 24px;border-radius:30px;font-size:0.85rem;font-family:'Cairo',sans-serif;z-index:9999;opacity:0;transition:opacity 0.4s;pointer-events:none}
+.paste-hint.show{opacity:1}
+@media(max-width:768px){header{flex-direction:column;gap:10px;text-align:center}header h1{font-size:1.4rem}.toolbar{justify-content:center}.table-wrapper{padding:10px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📦 إدارة المنتجات والمصاريف</h1>
+    <p>جدول متكامل لتتبع المنتجات، المصاريف، والأرباح</p>
+  </div>
+  <div style="color:var(--text2);font-size:0.85rem" id="datetime"></div>
+</header>
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="addRow()">➕ إضافة صف جديد</button>
+  <button class="btn btn-danger" onclick="clearAll()">🗑️ مسح الكل</button>
+  <button class="btn btn-export" onclick="exportCSV()">📥 تصدير CSV</button>
+  <button class="btn btn-export" onclick="printPage()" style="background:linear-gradient(135deg,#667eea,#764ba2)">🖨️ طباعة</button>
+</div>
+<div class="table-wrapper">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>الصورة</th>
+        <th>مصاريف استلام</th>
+        <th>مصاريف توصيل</th>
+        <th>سعر المنتج</th>
+        <th>الإجمالي الصافي</th>
+        <th>حالة المنتج</th>
+        <th>ملاحظات / مطالبات</th>
+        <th>حذف</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+<div class="summary">
+  <div class="summary-card blue">
+    <div class="summary-label">📦 إجمالي عدد المنتجات</div>
+    <div class="summary-value" id="sumCount">0</div>
+    <div class="summary-unit">منتج</div>
+  </div>
+  <div class="summary-card orange">
+    <div class="summary-label">🚗 إجمالي المصاريف</div>
+    <div class="summary-value" id="sumFrais">0.00</div>
+    <div class="summary-unit">دج</div>
+  </div>
+  <div class="summary-card blue" style="color:var(--blue)">
+    <div class="summary-label">💰 إجمالي سعر المنتجات</div>
+    <div class="summary-value" id="sumPrix">0.00</div>
+    <div class="summary-unit">دج</div>
+  </div>
+  <div class="summary-card green" id="netCard">
+    <div class="summary-label">✅ الربح الصافي</div>
+    <div class="summary-value" id="sumNet">0.00</div>
+    <div class="summary-unit">دج</div>
+  </div>
+  <div class="summary-card green" style="color:#a78bfa;border-color:rgba(167,139,250,0.3)">
+    <div class="summary-label">📬 مُسلَّم</div>
+    <div class="summary-value" id="countLivre">0</div>
+    <div class="summary-unit">منتج</div>
+  </div>
+  <div class="summary-card orange">
+    <div class="summary-label">⏳ في الانتظار</div>
+    <div class="summary-value" id="countAttente">0</div>
+    <div class="summary-unit">منتج</div>
+  </div>
+  <div class="summary-card red">
+    <div class="summary-label">❌ ملغى</div>
+    <div class="summary-value" id="countAnnule">0</div>
+    <div class="summary-unit">منتج</div>
+  </div>
+</div>
+<footer>© 2026 — نظام إدارة المنتجات | جميع الحقوق محفوظة</footer>
+<div class="paste-hint" id="pasteHint">📋 تم لصق الصورة بنجاح!</div>
+
+<video id="camVideo" style="display:none;position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:9999;background:#000"></video>
+<div id="camOverlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.8);flex-direction:column;align-items:center;justify-content:center;gap:20px">
+  <video id="camStream" autoplay playsinline style="width:90%;max-width:500px;border-radius:16px;border:3px solid var(--accent)"></video>
+  <div style="display:flex;gap:16px">
+    <button class="btn btn-primary" id="snapBtn" onclick="snapPhoto()" style="font-size:1.2rem;padding:14px 28px">📷 التقاط</button>
+    <button class="btn btn-danger" onclick="closeCamera()" style="font-size:1.2rem;padding:14px 28px">❌ إلغاء</button>
+  </div>
+</div>
+
+<script>
+let rowCount=0;
+let activeCamRow=null;
+let stream=null;
+
+function updateTime(){
+  const n=new Date();
+  document.getElementById('datetime').textContent=n.toLocaleString('ar-DZ',{dateStyle:'full',timeStyle:'short'});
+}
+setInterval(updateTime,1000);
+updateTime();
+
+function addRow(){
+  rowCount++;
+  const tbody=document.getElementById('tableBody');
+  const tr=document.createElement('tr');
+  tr.id='row-'+rowCount;
+  tr.innerHTML=`
+    <td class="row-num">${rowCount}</td>
+    <td class="photo-cell">
+      <div class="photo-wrapper" id="pw-${rowCount}" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,${rowCount})">
+        <input type="file" accept="image/*" onchange="handleFile(event,${rowCount})" title="اختر صورة">
+        <div class="photo-placeholder" id="ph-${rowCount}"><span>📷</span>صورة</div>
+        <img id="img-${rowCount}" alt="صورة المنتج">
+        <button class="cam-btn" onclick="openCamera(${rowCount});event.stopPropagation()" title="كاميرا">📸</button>
+      </div>
+    </td>
+    <td><input type="number" min="0" step="0.01" placeholder="0.00" id="rec-${rowCount}" onchange="calc(${rowCount})" oninput="calc(${rowCount})"></td>
+    <td><input type="number" min="0" step="0.01" placeholder="0.00" id="liv-${rowCount}" onchange="calc(${rowCount})" oninput="calc(${rowCount})"></td>
+    <td><input type="number" min="0" step="0.01" placeholder="0.00" id="prix-${rowCount}" onchange="calc(${rowCount})" oninput="calc(${rowCount})"></td>
+    <td id="net-${rowCount}" class="total-cell total-positive">—</td>
+    <td>
+      <select class="status-select status-attente" id="stat-${rowCount}" onchange="updateStatus(this,${rowCount})">
+        <option value="attente">⏳ في الانتظار</option>
+        <option value="livré">✅ مُسلَّم</option>
+        <option value="annulé">❌ ملغى</option>
+      </select>
+    </td>
+    <td><textarea placeholder="ملاحظات، مطالبات..." id="note-${rowCount}"></textarea></td>
+    <td><button class="del-btn" onclick="delRow(${rowCount})" title="حذف الصف">🗑️</button></td>
+  `;
+  tbody.appendChild(tr);
+  updateSummary();
+}
+
+function updateStatus(sel,id){
+  sel.className='status-select status-'+sel.value;
+  updateSummary();
+}
+
+function calc(id){
+  const rec=parseFloat(document.getElementById('rec-'+id)?.value)||0;
+  const liv=parseFloat(document.getElementById('liv-'+id)?.value)||0;
+  const prix=parseFloat(document.getElementById('prix-'+id)?.value)||0;
+  const net=prix-rec-liv;
+  const cell=document.getElementById('net-'+id);
+  if(cell){
+    cell.textContent=net.toFixed(2)+' دج';
+    cell.className='total-cell '+(net>=0?'total-positive':'total-negative');
+  }
+  updateSummary();
+}
+
+function delRow(id){
+  const row=document.getElementById('row-'+id);
+  if(row){row.style.opacity='0';row.style.transition='opacity 0.3s';setTimeout(()=>{row.remove();updateSummary();},300)}
+}
+
+function updateSummary(){
+  const rows=document.querySelectorAll('#tableBody tr');
+  let count=0,frais=0,prix=0,net=0,lv=0,at=0,an=0;
+  rows.forEach(tr=>{
+    const id=tr.id.replace('row-','');
+    if(!id)return;
+    const rec=parseFloat(document.getElementById('rec-'+id)?.value)||0;
+    const liv=parseFloat(document.getElementById('liv-'+id)?.value)||0;
+    const p=parseFloat(document.getElementById('prix-'+id)?.value)||0;
+    const stat=document.getElementById('stat-'+id)?.value||'attente';
+    count++;frais+=rec+liv;prix+=p;net+=p-rec-liv;
+    if(stat==='livré')lv++;else if(stat==='attente')at++;else an++;
+  });
+  document.getElementById('sumCount').textContent=count;
+  document.getElementById('sumFrais').textContent=frais.toFixed(2);
+  document.getElementById('sumPrix').textContent=prix.toFixed(2);
+  document.getElementById('sumNet').textContent=net.toFixed(2);
+  document.getElementById('countLivre').textContent=lv;
+  document.getElementById('countAttente').textContent=at;
+  document.getElementById('countAnnule').textContent=an;
+  const nc=document.getElementById('netCard');
+  nc.style.color=net>=0?'var(--green)':'var(--red)';
+  nc.style.borderColor=net>=0?'rgba(0,212,170,0.3)':'rgba(255,107,107,0.3)';
+}
+
+function setPhoto(id,src){
+  const img=document.getElementById('img-'+id);
+  const ph=document.getElementById('ph-'+id);
+  if(img&&ph){img.src=src;img.style.display='block';ph.style.display='none';}
+}
+
+function handleFile(e,id){
+  const f=e.target.files[0];
+  if(f&&f.type.startsWith('image/')){
+    const r=new FileReader();
+    r.onload=ev=>setPhoto(id,ev.target.result);
+    r.readAsDataURL(f);
+  }
+}
+
+function handleDrop(e,id){
+  e.preventDefault();
+  document.getElementById('pw-'+id)?.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')){
+    const r=new FileReader();
+    r.onload=ev=>setPhoto(id,ev.target.result);
+    r.readAsDataURL(f);
+  } else {
+    const url=e.dataTransfer.getData('text/uri-list')||e.dataTransfer.getData('text/plain');
+    if(url&&url.match(/\.(jpg|jpeg|png|gif|webp|bmp)/i))setPhoto(id,url);
+  }
+}
+
+document.addEventListener('paste',e=>{
+  const items=e.clipboardData?.items;
+  if(!items)return;
+  for(const item of items){
+    if(item.type.startsWith('image/')){
+      const rows=document.querySelectorAll('#tableBody tr');
+      if(!rows.length)return;
+      const lastId=rows[rows.length-1].id.replace('row-','');
+      const r=new FileReader();
+      r.onload=ev=>{setPhoto(lastId,ev.target.result);showPasteHint();};
+      r.readAsDataURL(item.getAsFile());
+      break;
+    }
+  }
+});
+
+function showPasteHint(){
+  const h=document.getElementById('pasteHint');
+  h.classList.add('show');
+  setTimeout(()=>h.classList.remove('show'),2500);
+}
+
+function openCamera(id){
+  activeCamRow=id;
+  const ov=document.getElementById('camOverlay');
+  ov.style.display='flex';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}})
+    .then(s=>{stream=s;document.getElementById('camStream').srcObject=s;})
+    .catch(()=>{alert('تعذّر الوصول للكاميرا');closeCamera();});
+}
+
+function snapPhoto(){
+  const video=document.getElementById('camStream');
+  const c=document.createElement('canvas');
+  c.width=video.videoWidth;c.height=video.videoHeight;
+  c.getContext('2d').drawImage(video,0,0);
+  setPhoto(activeCamRow,c.toDataURL('image/jpeg',0.9));
+  closeCamera();
+}
+
+function closeCamera(){
+  document.getElementById('camOverlay').style.display='none';
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  activeCamRow=null;
+}
+
+function clearAll(){
+  if(confirm('هل تريد مسح جميع البيانات؟')){
+    document.getElementById('tableBody').innerHTML='';
+    rowCount=0;updateSummary();
+  }
+}
+
+function exportCSV(){
+  const rows=document.querySelectorAll('#tableBody tr');
+  let csv='\uFEFF#,مصاريف الاستلام,مصاريف التوصيل,سعر المنتج,الصافي,الحالة,الملاحظات\n';
+  rows.forEach((tr,i)=>{
+    const id=tr.id.replace('row-','');
+    const rec=document.getElementById('rec-'+id)?.value||'0';
+    const liv=document.getElementById('liv-'+id)?.value||'0';
+    const prix=document.getElementById('prix-'+id)?.value||'0';
+    const net=(parseFloat(prix)-parseFloat(rec)-parseFloat(liv)).toFixed(2);
+    const stat=document.getElementById('stat-'+id)?.value||'';
+    const note=(document.getElementById('note-'+id)?.value||'').replace(/,/g,';');
+    csv+=`${i+1},${rec},${liv},${prix},${net},${stat},"${note}"\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='منتجات_'+new Date().toLocaleDateString('ar')+'.csv';
+  a.click();
+}
+
+function printPage(){window.print();}
+
+// Add 3 initial rows
+addRow();addRow();addRow();
+</script>
+</body>
+</html>
