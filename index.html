@@ -115,6 +115,14 @@ textarea{height:40px;text-align:right;font-size:0.75rem}
       <div class="summary-label">مُسلَّم</div>
       <div class="summary-value" id="countLivre">0</div>
     </div>
+    <div class="summary-card" style="color:var(--orange)">
+      <div class="summary-label">قيد التوصيل</div>
+      <div class="summary-value" id="countAttente">0</div>
+    </div>
+    <div class="summary-card" style="color:var(--red)">
+      <div class="summary-label">ملغي</div>
+      <div class="summary-value" id="countAnnule">0</div>
+    </div>
   </div>
 </div>
 <footer>© 2026 — نظام إدارة المنتجات</footer>
@@ -200,7 +208,7 @@ function delRow(id){
 
 function updateSummary(){
   const rows=document.querySelectorAll('#tableBody tr');
-  let count=0,frais=0,net=0,lv=0;
+  let count=0,frais=0,net=0,lv=0,at=0,an=0;
   rows.forEach(tr=>{
     const id=tr.id.replace('row-','');
     const rec=parseFloat(document.getElementById('rec-'+id)?.value)||0;
@@ -209,11 +217,15 @@ function updateSummary(){
     const stat=document.getElementById('stat-'+id)?.value;
     count++;frais+=rec+liv;net+=p-rec-liv;
     if(stat==='livré')lv++;
+    if(stat==='attente')at++;
+    if(stat==='annulé')an++;
   });
   document.getElementById('sumCount').textContent=count;
   document.getElementById('sumFrais').textContent=frais.toFixed(0);
   document.getElementById('sumNet').textContent=net.toFixed(0);
   document.getElementById('countLivre').textContent=lv;
+  document.getElementById('countAttente').textContent=at;
+  document.getElementById('countAnnule').textContent=an;
   document.getElementById('netCard').style.color=net>=0?'var(--green)':'var(--red)';
 }
 
