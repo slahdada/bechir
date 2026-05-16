@@ -230,50 +230,84 @@ function updateSummary(){
   document.getElementById('netCard').style.color=net>=0?'var(--green)':'var(--red)';
 }
 
-// DB Helper using IndexedDB for high capacity storage
+// DB Helper with robust fallbacks for mobile/in-app browsers
 const dbName = "SalesAppDB";
 const storeName = "settings";
+let memoryStorage = {};
 
 async function getDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName, 1);
-    request.onupgradeneeded = e => e.target.result.createObjectStore(storeName);
-    request.onsuccess = e => resolve(e.target.result);
-    request.onerror = e => reject(e.error);
+    try {
+      const request = indexedDB.open(dbName, 1);
+      request.onupgradeneeded = e => e.target.result.createObjectStore(storeName);
+      request.onsuccess = e => resolve(e.target.result);
+      request.onerror = e => reject(e.error);
+    } catch(e) {
+      reject(e);
+    }
   });
 }
 
 async function setDB(key, val) {
-  const db = await getDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, "readwrite");
-    tx.objectStore(storeName).put(val, key);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, "readwrite");
+      tx.objectStore(storeName).put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch(e) {
+    try {
+      localStorage.setItem(key, JSON.stringify(val));
+    } catch(err) {
+      memoryStorage[key] = val;
+    }
+  }
 }
 
 async function getDBVal(key) {
-  const db = await getDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, "readonly");
-    const req = tx.objectStore(storeName).get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  try {
+    const db = await getDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, "readonly");
+      const req = tx.objectStore(storeName).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  } catch(e) {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch(err) {
+      return memoryStorage[key] || null;
+    }
+  }
 }
 
 async function delDB(key) {
-  const db = await getDB();
-  const tx = db.transaction(storeName, "readwrite");
-  tx.objectStore(storeName).delete(key);
+  try {
+    const db = await getDB();
+    const tx = db.transaction(storeName, "readwrite");
+    tx.objectStore(storeName).delete(key);
+  } catch(e) {
+    try {
+      localStorage.removeItem(key);
+    } catch(err) {
+      delete memoryStorage[key];
+    }
+  }
 }
 
-// Image Compression with Error Handling
+// Image Compression with Error Handling and Memory Optimization
 function compressImage(src, maxWidth = 400) {
   return new Promise((resolve) => {
-    if (!src || src.length < 1000) return resolve(src); // Don't compress very small or empty images
+    if (!src) return resolve(src);
+    // Skip if it's already a small data URL
+    if (src.startsWith('data:') && src.length < 50000) return resolve(src);
+    
     const img = new Image();
+    img.crossOrigin = 'Anonymous'; // Help with some cross-origin issues
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
@@ -283,16 +317,24 @@ function compressImage(src, maxWidth = 400) {
           height = Math.round((height * maxWidth) / width);
           width = maxWidth;
         }
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = width || maxWidth;
+        canvas.height = height || maxWidth;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+        resolve(dataUrl);
       } catch (e) {
-        resolve(src); // Fallback
+        // If it fails, return a safe blank image or the original if it's not a blob
+        if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+        resolve(src.startsWith('data:') ? src : ''); 
       }
     };
-    img.onerror = () => resolve(src); // Fallback on error
+    img.onerror = () => {
+      if (src.startsWith('blob:')) URL.revokeObjectURL(src);
+      resolve(src.startsWith('data:') ? src : '');
+    };
     img.src = src;
   });
 }
@@ -306,6 +348,16 @@ async function setPhoto(id, src, isCompressed = false){
     img.src=finalSrc;
     img.style.display='block';
     ph.style.display='none';
+  }
+}
+
+function handleFile(e,id){
+  const f=e.target.files[0];
+  if(f){
+    const ph=document.getElementById('ph-'+id);
+    if(ph) ph.textContent='⏳';
+    const objUrl = URL.createObjectURL(f);
+    setPhoto(id, objUrl);
   }
 }
 
@@ -440,10 +492,19 @@ function openCamera(id){
 }
 function snapPhoto(){
   const v=document.getElementById('camStream');
+  if(!v.videoWidth) return;
   const c=document.createElement('canvas');
-  c.width=v.videoWidth;c.height=v.videoHeight;
-  c.getContext('2d').drawImage(v,0,0);
-  setPhoto(activeCamRow,c.toDataURL('image/jpeg',0.8));
+  const maxWidth = 400;
+  let width = v.videoWidth;
+  let height = v.videoHeight;
+  if(width > maxWidth) {
+    height = Math.round(height * maxWidth / width);
+    width = maxWidth;
+  }
+  c.width=width;
+  c.height=height;
+  c.getContext('2d').drawImage(v,0,0,width,height);
+  setPhoto(activeCamRow, c.toDataURL('image/jpeg',0.7), true);
   closeCamera();
 }
 function closeCamera(){
